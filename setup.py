@@ -32,7 +32,7 @@ setup(
     install_requires=[
         'questionary >= 1.10.0',
         'yaspin >= 2.1.0',
-        'alpaca-py >= 0.13.4',
+        'alpaca-py >= 0.13.5',
         'bokeh >= 2.4.2',
         'dateparser >= 1.1.0',
         'newnewtulipy >= 0.4.6.3',

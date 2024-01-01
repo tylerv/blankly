@@ -189,7 +189,7 @@ class Reporter:
         """
         self.__send_email(email)
         
-    def chat(self, message: str):
+    def chat(self, message: Any, header = 'Message from Blankly'):
         """
         Sends a text message to a Google Chat Space through a webhook_url
         Create the webhook following these instructions:
@@ -205,23 +205,135 @@ class Reporter:
             8. To copy the webhook URL, click more_vert More, and then click Copy link.
         Args:
             message: The text of the message to send to the webhook_url specified in notify.json
+                message can be a plaintext string, or a dict of values to create a card from.
+            header: The header of the message to send in the card. Ignored if message is plaintext.
         """
         # https://github.com/googleworkspace/google-chat-samples/blob/main/python/webhook/quickstart.py
         from json import dumps
         from httplib2 import Http
-
+    
         try:
             notify_preferences = load_notify_preferences()
             webhook = notify_preferences['chat']['webhook_url']
-
-            app_message = {"text": message}
+    
+            if (
+                isinstance(message, dict)
+                or isinstance(message, pd.DataFrame)
+                or isinstance(message, list)
+                or isinstance(message, tuple)
+            ):
+                app_message = self.__create_card(header, message)
+            else:
+                # assume plain_text
+                app_message = {"text": message}
             message_headers = {"Content-Type": "application/json; charset=UTF-8"}
             http_obj = Http()
+            body = dumps(app_message)
             response = http_obj.request(
                 uri=webhook,
                 method="POST",
                 headers=message_headers,
-                body=dumps(app_message),
+                body=body,
             )
+            # print(response)
         except KeyError:
             raise KeyError("Google Chat webhook URL not found. Check the notify.json documentation")
+
+    @staticmethod
+    def __create_card(header: str, data: Any) -> dict:
+        """
+        Builds a Card to send a dictionary to a google chat in a table-like format.
+        
+        Handles several types of data structures, but does NOT currently handle nested structures.
+        Best to send a simple dict, list, tuple, or str.
+        """
+        sections = []
+        
+        def get_df_section(df: pd.DataFrame, text: str = None):
+            cols = df.columns.tolist()
+            items = [{"title": str(item), "textAlignment": "CENTER"} for item in cols]
+            items += [{"title": str(cell_data), "textAlignment": "START"} for cell_data in
+                      df.values.ravel()]
+            result = {
+                "collapsible": True,
+                "uncollapsibleWidgetsCount": 1,
+                "widgets": []
+            }
+            if text:
+                result['widgets'].append({"textParagraph": {"text": str(text)}})
+        
+            result['widgets'].append(
+                {
+                    "grid": {
+                        "columnCount": df.shape[1],  # Number of Columns in df
+                        "items": items
+                    }
+                }
+            )
+        
+            return result
+        
+        if isinstance(data, pd.DataFrame):
+            result = get_df_section(data)
+        elif isinstance(data, dict):
+            result = {
+                "collapsible": True,
+                "uncollapsibleWidgetsCount": 1,
+                "widgets": [
+                    {
+                        "grid": {
+                            "columnCount": 2,  # Number of Columns (key & value)
+                            "items": [],
+                        }
+                    }
+                ]
+            }
+            for inner_key, inner_value in data.items():
+                result['widgets'][0]['grid']['items'] += [
+                    {"title": str(inner_key), "textAlignment": "START"},
+                    {"title": str(inner_value), "textAlignment": "START"}
+                ]
+        elif isinstance(data, list):
+            result = {
+                "collapsible": True,
+                "uncollapsibleWidgetsCount": 1,
+                "widgets": [
+                    {"textParagraph": {"text": str(item)}} for item in data
+                ]
+            }
+        elif isinstance(data, tuple):
+            result = {
+                "collapsible": False,
+                "widgets": [
+                    {
+                        "grid": {
+                            "columnCount": len(data),  # Number of items in Tuple
+                            "items": [{"title": str(item), "textAlignment": "START"} for item in data]
+                        }
+                    }
+                ]
+            }
+        else:
+            # Assume simple data type.
+            result = {
+                "collapsible": False,
+                "widgets": [
+                    {"textParagraph": {"text": str(data)}}
+                ]
+            }
+        
+        sections.append(result)
+        
+        return {
+            "cardsV2": [
+                {
+                    "cardId": "resultCard",
+                    "card": {
+                        'header': {
+                            "title": header
+                        },
+                        "sections": sections
+                    },
+                }
+            ]
+        }

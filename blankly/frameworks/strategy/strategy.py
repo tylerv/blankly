@@ -318,7 +318,7 @@ class Strategy(StrategyBase):
 
         self.__add_prices(to, start_date, end_date)
         res = self.model.backtest(args={}, initial_values=initial_values, settings_path=settings_path, kwargs=kwargs)
-        self.model.teardown()
+        # self.model.teardown()  # This is already called in the model backtest, so this is a second cll for the same run.
         return res
 
     def __add_prices(self, to, start_date, end_date):

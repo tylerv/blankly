@@ -20,6 +20,9 @@ import smtplib
 import ssl
 
 from typing import Any
+import pandas as pd
+from json import dumps
+from httplib2 import Http
 
 from blankly.utils.utils import load_notify_preferences
 from blankly.frameworks.strategy import Strategy
@@ -209,8 +212,6 @@ class Reporter:
             header: The header of the message to send in the card. Ignored if message is plaintext.
         """
         # https://github.com/googleworkspace/google-chat-samples/blob/main/python/webhook/quickstart.py
-        from json import dumps
-        from httplib2 import Http
     
         try:
             notify_preferences = load_notify_preferences()

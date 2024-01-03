@@ -276,6 +276,9 @@ class Strategy(StrategyBase):
                 GUI_output: bool = True,
                     Enable/disable GUI webpage display after backtest
 
+                excel_output: bool = True,
+                    Enable/disable Excel file output after backtest
+
                 show_tickers_with_zero_delta: bool = False,
                     Exclude tickers that have no change to account value in the GUI
 

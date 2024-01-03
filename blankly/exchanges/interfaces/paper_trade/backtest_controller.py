@@ -21,9 +21,11 @@ import os
 import time
 import traceback
 import typing
-from datetime import datetime as dt
+from datetime import datetime as dt, datetime
 import copy
 import enum
+from pathlib import Path
+
 import blankly
 
 import numpy as np
@@ -1224,5 +1226,24 @@ class BackTestController(ABCBacktestController):  # circular import to type mode
 
         # Export to the platform here
         blankly.reporter.export_backtest_result(platform_result)
+
+        if self.preferences['settings']['excel_output']:
+            day = datetime.now().strftime("%Y-%m-%d")
+            bt_start = datetime.fromtimestamp(result_object.start_time).strftime("%Y-%m-%d")
+            bt_end = datetime.fromtimestamp(result_object.stop_time).strftime("%Y-%m-%d")
+            filename = f'{day} - backtest from {bt_start} to {bt_end} results.xlsx'
+            directory = './backtest_results'
+            Path(directory).mkdir(parents=True, exist_ok=True)
+            filename = f'{directory}/{filename}'
+
+            with pd.ExcelWriter(filename) as writer:
+                for symbol in result_object.history:
+                    pd.DataFrame(result_object.history[symbol]).to_excel(writer, sheet_name=f'{symbol} History')
+                result_object.history_and_returns['history'].to_excel(writer, sheet_name='Account Value History')
+                pd.DataFrame(result_object.trades['created']).to_excel(writer, sheet_name='Created Trades')
+                pd.DataFrame(result_object.trades['executed_market_orders']).to_excel(writer,
+                                                                                sheet_name='Executed Orders')
+                pd.DataFrame.from_dict(result_object.metrics, orient='index', columns=['display_name', 'value']).to_excel(
+                    writer, sheet_name='Metrics')
 
         return result_object

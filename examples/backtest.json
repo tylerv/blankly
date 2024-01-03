@@ -6,6 +6,7 @@
     "use_price": "close",
     "smooth_prices": false,
     "GUI_output": true,
+    "excel_output": true,
     "show_tickers_with_zero_delta": false,
     "save_initial_account_value": true,
     "show_progress_during_backtest": true,

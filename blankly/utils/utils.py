@@ -89,6 +89,7 @@ default_backtest_settings = {
         "use_price": "close",
         "smooth_prices": False,
         "GUI_output": True,
+        "excel_output": False,
         "show_tickers_with_zero_delta": False,
         "save_initial_account_value": True,
         "show_progress_during_backtest": True,
